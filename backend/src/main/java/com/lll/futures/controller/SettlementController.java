@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/settlement")
 @RequiredArgsConstructor
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173", "https://lll-futures-frontend.onrender.com"})
 public class SettlementController {
     
     private final SettlementService settlementService;
