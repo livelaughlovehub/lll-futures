@@ -1,5 +1,5 @@
 # Dockerfile for LL&L Futures Backend
-FROM maven:3.8.6-openjdk-17-slim
+FROM maven:3.8.6-openjdk-17
 
 # Set working directory
 WORKDIR /app
