@@ -78,10 +78,15 @@ curl http://localhost:8080/api/markets
 
 ### **Common Issues:**
 
-**1. Build Fails:**
-- Check if `mvnw` file exists in backend directory
+**1. Build Fails with Maven Wrapper Error:**
+- **Error**: `"/mvnw": not found` or `"/.mvn": not found`
+- **Solution**: Updated Dockerfile to use Maven directly instead of wrapper
+- **Fixed**: Dockerfile now uses `maven:3.9.5-openjdk-17-slim` base image
+
+**2. Other Build Issues:**
 - Verify Java 17 is specified in Dockerfile
 - Check build logs for specific errors
+- Ensure `pom.xml` exists in backend directory
 
 **2. Port Issues:**
 - Ensure `PORT=8080` environment variable is set
