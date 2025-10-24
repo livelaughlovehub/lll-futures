@@ -1,4 +1,4 @@
-# Dockerfile for LL&L Futures Backend
+# Dockerfile for LL&L Futures Backend - Fixed Version
 FROM maven:3.8.6-openjdk-17-slim
 
 # Set working directory
