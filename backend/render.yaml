@@ -1,17 +1,14 @@
-# Render.com deployment configuration for LL&L Futures Backend
+# Render.com deployment configuration for LL&L Futures Backend (Docker)
 
 # Runtime
-java
+docker
 
-# Build Command
-./mvnw clean package -DskipTests
-
-# Start Command
-java -jar target/futures-backend-1.0.0.jar
-
-# Java Version
-17
+# Dockerfile Path
+backend/Dockerfile
 
 # Environment Variables (set these in Render dashboard)
 # PORT=8080
 # SPRING_PROFILES_ACTIVE=production
+
+# Docker Build Context
+# Root Directory: backend
