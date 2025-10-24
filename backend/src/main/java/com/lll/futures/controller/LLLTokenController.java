@@ -17,7 +17,7 @@ import java.util.Map;
 @RequestMapping("/api/lll")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173"})
+@CrossOrigin(origins = {"http://localhost:3000", "http://localhost:5173", "https://lll-futures-frontend.onrender.com"})
 public class LLLTokenController {
     
     private final LLLTokenService lllTokenService;

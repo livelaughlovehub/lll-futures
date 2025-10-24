@@ -4,10 +4,18 @@ import axios from 'axios'
 // Use environment variable for API URL, fallback to localhost for development
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
 
+// Create axios instance with timeout for Render cold starts
+const apiClient = axios.create({
+  timeout: 30000, // 30 seconds timeout
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
 // Token Balance API
 export const getTokenBalance = async (walletAddress) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/lll/balance/${walletAddress}`)
+    const response = await apiClient.get(`${API_BASE_URL}/lll/balance/${walletAddress}`)
     return response.data
   } catch (error) {
     console.error('Error fetching token balance:', error)
@@ -18,7 +26,7 @@ export const getTokenBalance = async (walletAddress) => {
 // Staking API
 export const stakeTokens = async (walletAddress, amount) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/lll/stake`, {
+    const response = await apiClient.post(`${API_BASE_URL}/lll/stake`, {
       walletAddress,
       amount
     })
@@ -31,7 +39,7 @@ export const stakeTokens = async (walletAddress, amount) => {
 
 export const unstakeTokens = async (walletAddress, amount) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/lll/unstake`, {
+    const response = await apiClient.post(`${API_BASE_URL}/lll/unstake`, {
       walletAddress,
       amount
     })
@@ -45,7 +53,7 @@ export const unstakeTokens = async (walletAddress, amount) => {
 // Rewards API
 export const claimReward = async (walletAddress, amount, rewardType) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/lll/rewards/claim`, {
+    const response = await apiClient.post(`${API_BASE_URL}/lll/rewards/claim`, {
       walletAddress,
       amount,
       rewardType
@@ -59,7 +67,7 @@ export const claimReward = async (walletAddress, amount, rewardType) => {
 
 export const processDailyLogin = async (walletAddress) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/lll/rewards/daily-login`, {
+    const response = await apiClient.post(`${API_BASE_URL}/lll/rewards/daily-login`, {
       walletAddress
     })
     return response.data
@@ -72,7 +80,7 @@ export const processDailyLogin = async (walletAddress) => {
 // Staking Info API
 export const getStakingInfo = async (walletAddress) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/lll/staking/${walletAddress}`)
+    const response = await apiClient.get(`${API_BASE_URL}/lll/staking/${walletAddress}`)
     return response.data
   } catch (error) {
     console.error('Error fetching staking info:', error)
