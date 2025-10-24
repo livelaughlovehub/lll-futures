@@ -1,0 +1,163 @@
+package com.lll.futures.service;
+
+import com.lll.futures.dto.OrderDTO;
+import com.lll.futures.dto.PlaceOrderRequest;
+import com.lll.futures.model.Market;
+import com.lll.futures.model.Order;
+import com.lll.futures.model.Transaction;
+import com.lll.futures.model.User;
+import com.lll.futures.model.UserTokenBalance;
+import com.lll.futures.repository.MarketRepository;
+import com.lll.futures.repository.OrderRepository;
+import com.lll.futures.repository.TransactionRepository;
+import com.lll.futures.repository.UserRepository;
+import com.lll.futures.repository.UserTokenBalanceRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class OrderService {
+    
+    private final OrderRepository orderRepository;
+    private final UserRepository userRepository;
+    private final MarketRepository marketRepository;
+    private final TransactionRepository transactionRepository;
+    private final UserTokenBalanceRepository userTokenBalanceRepository;
+    private final UserService userService;
+    private final MarketService marketService;
+    private final LLLTokenService lllTokenService;
+    
+    @Transactional(readOnly = true)
+    public List<OrderDTO> getAllOrders() {
+        return orderRepository.findAll().stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public List<OrderDTO> getUserOrders(Long userId) {
+        return orderRepository.findByUserId(userId).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public List<OrderDTO> getUserOpenOrders(Long userId) {
+        return orderRepository.findByUserIdAndStatus(userId, Order.OrderStatus.OPEN).stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    @Transactional(readOnly = true)
+    public OrderDTO getOrderById(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
+        return convertToDTO(order);
+    }
+    
+    @Transactional
+    public OrderDTO placeOrder(PlaceOrderRequest request) {
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + request.getUserId()));
+        
+        Market market = marketRepository.findById(request.getMarketId())
+                .orElseThrow(() -> new RuntimeException("Market not found with id: " + request.getMarketId()));
+        
+        if (market.getStatus() != Market.MarketStatus.ACTIVE) {
+            throw new RuntimeException("Market is not active");
+        }
+        
+        // Get LLL token balance for the wallet
+        UserTokenBalance tokenBalance = userTokenBalanceRepository.findByWalletAddress(request.getWalletAddress())
+                .orElseThrow(() -> new RuntimeException("No LLL token balance found for wallet: " + request.getWalletAddress()));
+        
+        // Check if user has sufficient staked tokens for trading
+        if (tokenBalance.getStakedAmount() < request.getStakeAmount()) {
+            throw new RuntimeException("Insufficient staked LLL tokens. Staked: " + tokenBalance.getStakedAmount() + 
+                    " LLL, Required: " + request.getStakeAmount() + " LLL. Please stake more tokens to trade.");
+        }
+        
+        Double odds = request.getSide() == Order.OrderSide.YES ? market.getYesOdds() : market.getNoOdds();
+        Double potentialPayout = request.getStakeAmount() * odds;
+        
+        Order order = Order.builder()
+                .user(user)
+                .walletAddress(request.getWalletAddress())
+                .market(market)
+                .side(request.getSide())
+                .stakeAmount(request.getStakeAmount())
+                .odds(odds)
+                .potentialPayout(potentialPayout)
+                .status(Order.OrderStatus.OPEN)
+                .build();
+        
+        order = orderRepository.save(order);
+        
+        // Deduct staked tokens from LLL token balance (tokens are locked for the trade)
+        tokenBalance.setStakedAmount(tokenBalance.getStakedAmount() - request.getStakeAmount());
+        userTokenBalanceRepository.save(tokenBalance);
+        
+        // Update market volume
+        marketService.updateMarketVolume(market.getId(), request.getStakeAmount(), 
+                request.getSide() == Order.OrderSide.YES);
+        
+        // Create transaction record
+        createTransaction(user, Transaction.TransactionType.BET_PLACED, 
+                -request.getStakeAmount(), 
+                "Bet placed on: " + market.getTitle() + " (Wallet: " + request.getWalletAddress() + ")",
+                order.getId(), market.getId());
+        
+        log.info("Order placed: User {} bet {} LLL on {} for market: {} using wallet: {}", 
+                user.getUsername(), request.getStakeAmount(), request.getSide(), market.getTitle(), request.getWalletAddress());
+        
+        return convertToDTO(order);
+    }
+    
+    private void createTransaction(User user, Transaction.TransactionType type, 
+                                   Double amount, String description, 
+                                   Long orderId, Long marketId) {
+        Double balanceBefore = user.getTokenBalance() - amount;
+        
+        Transaction transaction = Transaction.builder()
+                .user(user)
+                .type(type)
+                .amount(amount)
+                .balanceBefore(balanceBefore)
+                .balanceAfter(user.getTokenBalance())
+                .description(description)
+                .relatedOrderId(orderId)
+                .relatedMarketId(marketId)
+                .build();
+        
+        transactionRepository.save(transaction);
+    }
+    
+    private OrderDTO convertToDTO(Order order) {
+        return OrderDTO.builder()
+                .id(order.getId())
+                .userId(order.getUser().getId())
+                .username(order.getUser().getUsername())
+                .walletAddress(order.getWalletAddress())
+                .marketId(order.getMarket().getId())
+                .marketTitle(order.getMarket().getTitle())
+                .side(order.getSide())
+                .stakeAmount(order.getStakeAmount())
+                .odds(order.getOdds())
+                .potentialPayout(order.getPotentialPayout())
+                .status(order.getStatus())
+                .settledAmount(order.getSettledAmount())
+                .settledAt(order.getSettledAt())
+                .createdAt(order.getCreatedAt())
+                .build();
+    }
+}
+
+
