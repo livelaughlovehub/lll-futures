@@ -1,7 +1,8 @@
 // API service for LLL token operations
 import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:8080/api'
+// Use environment variable for API URL, fallback to localhost for development
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
 
 // Token Balance API
 export const getTokenBalance = async (walletAddress) => {

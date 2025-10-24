@@ -1,0 +1,17 @@
+# Render.com deployment configuration for LL&L Futures Backend
+
+# Runtime
+java
+
+# Build Command
+./mvnw clean package -DskipTests
+
+# Start Command
+java -jar target/futures-backend-1.0.0.jar
+
+# Java Version
+17
+
+# Environment Variables (set these in Render dashboard)
+# PORT=8080
+# SPRING_PROFILES_ACTIVE=production
