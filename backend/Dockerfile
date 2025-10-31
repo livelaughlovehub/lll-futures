@@ -1,7 +1,7 @@
 # Dockerfile for LL&L Futures Backend
 
 # Stage 1: Build
-FROM maven:3.9.9-eclipse-temurin-21-jdk AS build
+FROM maven:3.9.9-amazoncorretto-21 AS build
 
 # Set working directory
 WORKDIR /app
