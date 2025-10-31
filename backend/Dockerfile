@@ -1,5 +1,5 @@
 # Dockerfile for LL&L Futures Backend
-FROM maven:3.8.6-eclipse-temurin-21
+FROM maven:3.9.9-eclipse-temurin-21
 
 # Set working directory
 WORKDIR /app
