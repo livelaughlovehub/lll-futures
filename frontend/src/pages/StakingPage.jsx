@@ -14,7 +14,7 @@ export default function StakingPage() {
           Staking Dashboard
         </h1>
         <p className="text-gray-600">
-          Stake your LLL tokens to earn 10% APY and participate in futures trading
+          Optional: Stake your LLL tokens to earn 10% APY. You can trade without staking!
         </p>
       </div>
 
@@ -28,8 +28,8 @@ export default function StakingPage() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
             <h3 className="font-semibold text-blue-900 mb-2">How Staking Works</h3>
             <ul className="text-sm text-blue-800 text-left space-y-1">
-              <li>• Stake LLL tokens to earn 10% APY</li>
-              <li>• Staked tokens are required for trading</li>
+              <li>• Optional: Stake LLL tokens to earn 10% APY</li>
+              <li>• Trade immediately with unstaked tokens</li>
               <li>• Earn additional rewards for trading activity</li>
               <li>• Unstake anytime to reclaim your tokens</li>
             </ul>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { getTokenBalance, getStakingInfo } from '../api/solanaApi'
+import { getAllUsers } from '../api/api'
 
 const WalletContext = createContext()
 
@@ -16,14 +17,13 @@ export const WalletProvider = ({ children }) => {
   const [publicKey, setPublicKey] = useState(null)
   const [tokenBalance, setTokenBalance] = useState(null)
   const [stakingInfo, setStakingInfo] = useState(null)
+  const [currentUser, setCurrentUser] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  // Mock wallet addresses for demo
+  // Real wallet addresses for testing
   const mockWallets = [
-    'DemoWallet1ABC123456789',
-    'DemoWallet2DEF987654321',
-    'DemoWallet3GHI456789123',
-    'DemoWallet4JKL789123456'
+    'DmpJsyNToL3i9cKoCZtT88nYLABdKNvfy2X8bpxDYZehs', // Admin wallet (100 LLL)
+    '5M38wf2Uruu9cKoCZtT88nYLABdKNvfy2X8bpxDYZehs'  // User wallet (100 LLL)
   ]
 
   const connectWallet = async (walletAddress = null) => {
@@ -35,6 +35,9 @@ export const WalletProvider = ({ children }) => {
       setPublicKey(address)
       setConnected(true)
       
+      // Find or create user for this wallet
+      await findOrCreateUser(address)
+      
       // Load token data
       await loadTokenData(address)
       
@@ -45,11 +48,38 @@ export const WalletProvider = ({ children }) => {
     }
   }
 
+  const findOrCreateUser = async (walletAddress) => {
+    try {
+      // Get all users and find one with this wallet address
+      const users = await getAllUsers()
+      const existingUser = users.find(user => user.walletAddress === walletAddress)
+      
+      if (existingUser) {
+        setCurrentUser(existingUser)
+        console.log('Found existing user:', existingUser.username)
+      } else {
+        // Create a new user for this wallet
+        const newUser = {
+          id: Date.now(), // Temporary ID
+          username: `Wallet_${walletAddress.slice(0, 8)}`,
+          walletAddress: walletAddress,
+          tokenBalance: 0, // Will be updated by loadTokenData
+          isAdmin: false
+        }
+        setCurrentUser(newUser)
+        console.log('Created new user for wallet:', walletAddress)
+      }
+    } catch (error) {
+      console.error('Error finding/creating user:', error)
+    }
+  }
+
   const disconnectWallet = () => {
     setConnected(false)
     setPublicKey(null)
     setTokenBalance(null)
     setStakingInfo(null)
+    setCurrentUser(null)
   }
 
   const loadTokenData = async (walletAddress) => {
@@ -77,6 +107,7 @@ export const WalletProvider = ({ children }) => {
     publicKey,
     tokenBalance,
     stakingInfo,
+    currentUser,
     loading,
     connectWallet,
     disconnectWallet,

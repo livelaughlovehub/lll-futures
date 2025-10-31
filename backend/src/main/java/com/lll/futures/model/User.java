@@ -27,10 +27,22 @@ public class User {
     private String email;
     
     @Column(nullable = false)
+    private String password; // Hashed password
+    
+    @Column
+    private String profilePicture;
+    
+    @Column
+    private String bio;
+    
+    @Column(nullable = false)
     private Double tokenBalance;
     
     @Column(nullable = false)
     private Boolean isAdmin;
+    
+    @Column(unique = true)
+    private String walletAddress;
     
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -46,7 +58,7 @@ public class User {
             isAdmin = false;
         }
         if (tokenBalance == null) {
-            tokenBalance = 1000.0;
+            tokenBalance = 50.0; // New users get 50 real LLL tokens
         }
     }
     

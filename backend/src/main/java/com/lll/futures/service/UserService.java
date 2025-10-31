@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
 public class UserService {
     
     private final UserRepository userRepository;
+    private final TokenSyncService tokenSyncService;
     
     @Value("${app.token.initial-balance}")
     private Double initialBalance;
@@ -38,9 +39,22 @@ public class UserService {
     }
     
     @Transactional(readOnly = true)
+    public User getUserEntityById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+    }
+    
+    @Transactional(readOnly = true)
     public UserDTO getUserByUsername(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+        return convertToDTO(user);
+    }
+    
+    @Transactional(readOnly = true)
+    public UserDTO getUserByWalletAddress(String walletAddress) {
+        User user = userRepository.findByWalletAddress(walletAddress)
+                .orElseThrow(() -> new RuntimeException("User not found with wallet address: " + walletAddress));
         return convertToDTO(user);
     }
     
@@ -63,7 +77,53 @@ public class UserService {
                 .build();
         
         user = userRepository.save(user);
-        log.info("Created user: {} with balance: {} LLL", user.getUsername(), user.getTokenBalance());
+        
+        // Assign wallet address and sync token balance
+        tokenSyncService.assignWalletAddress(user);
+        
+        log.info("Created user: {} with balance: {} LLL and wallet: {}", 
+            user.getUsername(), user.getTokenBalance(), user.getWalletAddress());
+        
+        return convertToDTO(user);
+    }
+    
+    @Transactional
+    public UserDTO updateUser(Long id, UserDTO userDTO) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        
+        // Update only the fields that are provided and allowed to be updated
+        if (userDTO.getUsername() != null && !userDTO.getUsername().trim().isEmpty()) {
+            // Check if username is already taken by another user
+            if (!user.getUsername().equals(userDTO.getUsername()) && 
+                userRepository.existsByUsername(userDTO.getUsername())) {
+                throw new RuntimeException("Username already exists: " + userDTO.getUsername());
+            }
+            user.setUsername(userDTO.getUsername().trim());
+        }
+        
+        if (userDTO.getEmail() != null && !userDTO.getEmail().trim().isEmpty()) {
+            // Check if email is already taken by another user
+            if (!user.getEmail().equals(userDTO.getEmail()) && 
+                userRepository.existsByEmail(userDTO.getEmail())) {
+                throw new RuntimeException("Email already exists: " + userDTO.getEmail());
+            }
+            user.setEmail(userDTO.getEmail().trim());
+        }
+        
+        // Update profile picture if provided
+        if (userDTO.getProfilePicture() != null) {
+            user.setProfilePicture(userDTO.getProfilePicture().trim());
+        }
+        
+        // Update bio if provided
+        if (userDTO.getBio() != null) {
+            user.setBio(userDTO.getBio().trim());
+        }
+        
+        user = userRepository.save(user);
+        
+        log.info("Updated user profile for ID: {}", id);
         
         return convertToDTO(user);
     }
@@ -81,6 +141,10 @@ public class UserService {
         
         user.setTokenBalance(newBalance);
         userRepository.save(user);
+        
+        // Sync updated balance to wallet
+        tokenSyncService.syncUserToWallet(user);
+        
         log.debug("Updated balance for user {}: {} LLL", userId, newBalance);
     }
     
@@ -89,8 +153,11 @@ public class UserService {
                 .id(user.getId())
                 .username(user.getUsername())
                 .email(user.getEmail())
+                .profilePicture(user.getProfilePicture())
+                .bio(user.getBio())
                 .tokenBalance(user.getTokenBalance())
                 .isAdmin(user.getIsAdmin())
+                .walletAddress(user.getWalletAddress())
                 .createdAt(user.getCreatedAt())
                 .build();
     }

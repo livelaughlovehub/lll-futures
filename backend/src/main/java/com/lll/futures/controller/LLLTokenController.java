@@ -3,6 +3,8 @@ package com.lll.futures.controller;
 import com.lll.futures.dto.*;
 import com.lll.futures.model.TradingReward;
 import com.lll.futures.service.LLLTokenService;
+import com.lll.futures.service.SolanaService;
+import com.lll.futures.service.VaultService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -10,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +23,8 @@ import java.util.Map;
 public class LLLTokenController {
     
     private final LLLTokenService lllTokenService;
+    private final VaultService vaultService;
+    private final SolanaService solanaService;
     
     /**
      * Get token balance for a wallet address
@@ -212,6 +217,35 @@ public class LLLTokenController {
                     .build();
             
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+    
+    /**
+     * Get vault information (public key and balance)
+     */
+    @GetMapping("/vault")
+    public ResponseEntity<Map<String, Object>> getVaultInfo() {
+        try {
+            String vaultPublicKey = vaultService.getVaultPublicKey();
+            Double vaultBalance = vaultService.getVaultBalance(solanaService);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("publicKey", vaultPublicKey);
+            response.put("balance", vaultBalance);
+            response.put("configured", vaultService.isConfigured());
+            
+            log.info("Vault info requested - Balance: {} LLL", vaultBalance);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            log.error("Error getting vault info: {}", e.getMessage());
+            
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            errorResponse.put("configured", vaultService.isConfigured());
+            
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
         }
     }
 }

@@ -6,11 +6,9 @@ import com.lll.futures.model.Market;
 import com.lll.futures.model.Order;
 import com.lll.futures.model.Transaction;
 import com.lll.futures.model.User;
-import com.lll.futures.model.UserTokenBalance;
 import com.lll.futures.repository.MarketRepository;
 import com.lll.futures.repository.OrderRepository;
 import com.lll.futures.repository.TransactionRepository;
-import com.lll.futures.repository.UserTokenBalanceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,7 +25,6 @@ public class SettlementService {
     private final MarketRepository marketRepository;
     private final OrderRepository orderRepository;
     private final TransactionRepository transactionRepository;
-    private final UserTokenBalanceRepository userTokenBalanceRepository;
     private final UserService userService;
     private final MarketService marketService;
     
@@ -61,50 +58,46 @@ public class SettlementService {
         for (Order order : openOrders) {
             boolean isWinner = determineWinner(order, request.getOutcome());
             
-            // Get LLL token balance for the wallet
-            UserTokenBalance tokenBalance = userTokenBalanceRepository.findByWalletAddress(order.getWalletAddress())
-                    .orElseThrow(() -> new RuntimeException("No LLL token balance found for wallet: " + order.getWalletAddress()));
-            
             if (isWinner) {
-                // Pay out winner - add tokens back to staked amount + winnings
+                // Pay out winner
                 Double payout = order.getPotentialPayout();
                 order.setSettledAmount(payout);
                 
-                // Return staked amount + winnings to staked balance
-                tokenBalance.setStakedAmount(tokenBalance.getStakedAmount() + payout);
-                userTokenBalanceRepository.save(tokenBalance);
+                // Update User.tokenBalance using UserService (which also syncs to UserTokenBalance)
+                userService.updateBalance(order.getUser().getId(), payout);
                 
                 createTransaction(order.getUser(), Transaction.TransactionType.BET_WON, 
-                        payout, "Won bet on: " + market.getTitle() + " (Wallet: " + order.getWalletAddress() + ")", 
+                        payout, "Won bet on: " + market.getTitle(), 
                         order.getId(), market.getId());
                 
                 totalPayouts += payout;
                 winnersCount++;
-                log.debug("Order {} won. Payout: {} LLL to wallet: {}", order.getId(), payout, order.getWalletAddress());
+                log.debug("Order {} won. Payout: {} LLL", order.getId(), payout);
+                
             } else if (request.getOutcome() == Market.MarketOutcome.VOID) {
-                // Refund on void - return staked amount
+                // Refund on void
                 Double refund = order.getStakeAmount();
                 order.setSettledAmount(refund);
                 
-                // Return staked amount back to staked balance
-                tokenBalance.setStakedAmount(tokenBalance.getStakedAmount() + refund);
-                userTokenBalanceRepository.save(tokenBalance);
+                // Update User.tokenBalance using UserService (which also syncs to UserTokenBalance)
+                userService.updateBalance(order.getUser().getId(), refund);
                 
                 createTransaction(order.getUser(), Transaction.TransactionType.BET_REFUND, 
-                        refund, "Refund for voided market: " + market.getTitle() + " (Wallet: " + order.getWalletAddress() + ")", 
+                        refund, "Refund for voided market: " + market.getTitle(), 
                         order.getId(), market.getId());
                 
-                log.debug("Order {} refunded: {} LLL to wallet: {}", order.getId(), refund, order.getWalletAddress());
+                log.debug("Order {} refunded: {} LLL", order.getId(), refund);
+                
             } else {
                 // Loser - tokens already deducted when bet was placed
                 order.setSettledAmount(0.0);
                 
                 createTransaction(order.getUser(), Transaction.TransactionType.BET_LOST, 
-                        0.0, "Lost bet on: " + market.getTitle() + " (Wallet: " + order.getWalletAddress() + ")", 
+                        0.0, "Lost bet on: " + market.getTitle(), 
                         order.getId(), market.getId());
                 
                 losersCount++;
-                log.debug("Order {} lost, wallet: {}", order.getId(), order.getWalletAddress());
+                log.debug("Order {} lost", order.getId());
             }
             
             order.setStatus(Order.OrderStatus.SETTLED);

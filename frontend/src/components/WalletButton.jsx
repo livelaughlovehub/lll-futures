@@ -16,6 +16,7 @@ export default function WalletButton() {
   } = useWallet()
   
   const [showWalletSelector, setShowWalletSelector] = useState(false)
+  const [customWallet, setCustomWallet] = useState('')
 
   const handleConnect = () => {
     setShowWalletSelector(true)
@@ -45,26 +46,66 @@ export default function WalletButton() {
         {showWalletSelector && (
           <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
             <div className="p-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Select Demo Wallet</h3>
-              <div className="space-y-2">
-                {mockWallets.map((wallet, index) => (
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Connect Wallet</h3>
+              
+              {/* Manual Wallet Input */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Enter Your Wallet Address
+                </label>
+                <input
+                  type="text"
+                  placeholder="DmpJsyNToL3i9cKoCZtT88nYLABdKNvfy2X8bpxDYZehs"
+                  value={customWallet}
+                  onChange={(e) => setCustomWallet(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+                <button
+                  onClick={() => {
+                    if (customWallet.trim()) {
+                      handleSelectWallet(customWallet.trim())
+                    }
+                  }}
+                  disabled={!customWallet.trim()}
+                  className="w-full mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                >
+                  Connect Custom Wallet
+                </button>
+              </div>
+              
+              <div className="border-t pt-3">
+                <p className="text-sm text-gray-600 mb-2">Or use demo wallets:</p>
+                <div className="space-y-2">
+                  {/* Admin Wallet */}
                   <button
-                    key={wallet}
-                    onClick={() => handleSelectWallet(wallet)}
+                    onClick={() => handleSelectWallet(mockWallets[0])}
                     className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
                   >
-                    <div className="font-medium text-sm text-gray-900">
-                      Demo Wallet {index + 1}
-                    </div>
+                    <div className="font-medium text-sm text-gray-900">Admin Wallet</div>
                     <div className="text-xs text-gray-500 font-mono">
-                      {wallet.slice(0, 8)}...{wallet.slice(-8)}
+                      {mockWallets[0].slice(0, 8)}...{mockWallets[0].slice(-8)} (100 LLL)
                     </div>
                   </button>
-                ))}
+                  
+                  {/* User Wallet */}
+                  <button
+                    onClick={() => handleSelectWallet(mockWallets[1])}
+                    className="w-full text-left p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+                  >
+                    <div className="font-medium text-sm text-gray-900">User Wallet</div>
+                    <div className="text-xs text-gray-500 font-mono">
+                      {mockWallets[1].slice(0, 8)}...{mockWallets[1].slice(-8)} (100 LLL)
+                    </div>
+                  </button>
+                </div>
               </div>
+              
               <button
-                onClick={() => setShowWalletSelector(false)}
-                className="w-full mt-3 px-4 py-2 text-gray-600 hover:text-gray-800 transition"
+                onClick={() => {
+                  setShowWalletSelector(false)
+                  setCustomWallet('')
+                }}
+                className="w-full mt-3 px-4 py-2 text-gray-600 hover:text-gray-800 transition text-sm"
               >
                 Cancel
               </button>
@@ -76,49 +117,38 @@ export default function WalletButton() {
   }
 
   return (
-    <div className="flex items-center space-x-3">
-      {/* Token Balance Display */}
-      <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white px-3 py-2 rounded-lg">
-        <div className="flex items-center space-x-4">
-          <div>
-            <div className="text-xs">LLL Balance</div>
-            <div className="font-bold text-sm">
-              {tokenBalance?.lllBalance?.toFixed(2) || '0.00'} LLL
-            </div>
-          </div>
-          <div>
-            <div className="text-xs">Staked</div>
-            <div className="font-bold text-sm">
-              {stakingInfo?.stakedAmount?.toFixed(2) || '0.00'} LLL
-            </div>
-          </div>
+    <div className="flex items-center space-x-2">
+      {/* Compact Token Balance Display */}
+      <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-white px-2 py-1 rounded-lg text-xs">
+        <div className="flex items-center space-x-2">
+          <span>{tokenBalance?.lllBalance?.toFixed(0) || '0'} LLL</span>
+          <span className="opacity-75">|</span>
+          <span>{stakingInfo?.stakedAmount?.toFixed(0) || '0'} Staked</span>
         </div>
       </div>
 
-      {/* Wallet Info */}
-      <div className="text-sm text-gray-600">
-        <div className="font-mono">
-          {publicKey?.slice(0, 8)}...{publicKey?.slice(-8)}
-        </div>
+      {/* Compact Wallet Address */}
+      <div className="text-xs text-gray-600 font-mono">
+        {publicKey?.slice(0, 4)}...{publicKey?.slice(-4)}
       </div>
 
-      {/* Refresh Button */}
-      <button
-        onClick={handleRefresh}
-        className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition"
-        title="Refresh token data"
-      >
-        <RefreshCw size={16} />
-      </button>
-
-      {/* Disconnect Button */}
-      <button
-        onClick={disconnectWallet}
-        className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-        title="Disconnect wallet"
-      >
-        <LogOut size={16} />
-      </button>
+      {/* Action Buttons - Smaller */}
+      <div className="flex items-center space-x-1">
+        <button
+          onClick={handleRefresh}
+          className="p-1 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition"
+          title="Refresh"
+        >
+          <RefreshCw size={14} />
+        </button>
+        <button
+          onClick={disconnectWallet}
+          className="p-1 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition"
+          title="Disconnect"
+        >
+          <LogOut size={14} />
+        </button>
+      </div>
     </div>
   )
 }

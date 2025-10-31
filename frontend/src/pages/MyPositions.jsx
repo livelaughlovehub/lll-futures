@@ -2,7 +2,13 @@ import { useState, useEffect } from 'react'
 import { getUserOrders } from '../api/api'
 import { TrendingUp, TrendingDown, Clock, CheckCircle } from 'lucide-react'
 
-export default function MyPositions({ currentUser }) {
+import { useAuth } from '../context/AuthContext'
+import { Link } from 'react-router-dom'
+
+export default function MyPositions({ currentUser: propCurrentUser }) {
+  const { currentUser: contextCurrentUser } = useAuth()
+  const currentUser = propCurrentUser || contextCurrentUser
+  
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all') // all, open, settled
@@ -47,6 +53,24 @@ export default function MyPositions({ currentUser }) {
     )
   }
 
+  // Show sign-in prompt if not authenticated
+  if (!currentUser) {
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Positions</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1 sm:mt-2">Track your bets and winnings</p>
+        </div>
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-8 text-center">
+          <p className="text-gray-600 mb-4">Please sign in to view your positions</p>
+          <Link to="/signin" className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium">
+            Sign In
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
@@ -86,7 +110,9 @@ export default function MyPositions({ currentUser }) {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 mb-3 sm:mb-2">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2">{order.marketTitle}</h3>
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 line-clamp-2">
+                      {order.marketTitle || `Market #${order.marketId}`}
+                    </h3>
                     {getStatusBadge(order.status)}
                   </div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-3 sm:mt-4">
@@ -117,8 +143,8 @@ export default function MyPositions({ currentUser }) {
                       </p>
                       <p className="font-semibold text-sm sm:text-base text-blue-600 mt-1">
                         {order.status === 'SETTLED' 
-                          ? `${order.settledAmount.toFixed(0)} LLL`
-                          : `${order.potentialPayout.toFixed(0)} LLL`
+                          ? `${(order.settledAmount || 0).toFixed(0)} LLL`
+                          : `${(order.potentialPayout || 0).toFixed(0)} LLL`
                         }
                       </p>
                     </div>

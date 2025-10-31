@@ -15,8 +15,11 @@ public class UserDTO {
     private Long id;
     private String username;
     private String email;
+    private String profilePicture;
+    private String bio;
     private Double tokenBalance;
     private Boolean isAdmin;
+    private String walletAddress;
     private LocalDateTime createdAt;
 }
 

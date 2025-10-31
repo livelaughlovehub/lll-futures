@@ -1,18 +1,26 @@
 import { useState } from 'react'
 import { TrendingUp, TrendingDown, Clock, DollarSign } from 'lucide-react'
 import { placeOrder } from '../api/api'
-import { useWallet } from '../context/WalletContext'
+import { useAuth } from '../context/AuthContext'
 
-export default function MarketCard({ market, currentUser, onUpdate }) {
-  const { connectedWallet, stakedAmount } = useWallet()
+export default function MarketCard({ market, onUpdate }) {
+  const { currentUser } = useAuth()
+  const connected = !!currentUser
+  // For now, we'll use platform tokens (no external wallet needed)
+  const publicKey = currentUser?.walletAddress || null
+  const totalBalance = currentUser?.tokenBalance || 0
+  const stakingInfo = { 
+    stakedAmount: 0, // We'll get this from API later
+    totalAvailable: totalBalance 
+  }
   const [showBetModal, setShowBetModal] = useState(false)
   const [betSide, setBetSide] = useState(null)
   const [betAmount, setBetAmount] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handlePlaceBet = async (side) => {
-    if (!connectedWallet) {
-      alert('Please connect your wallet to place bets')
+    if (!connected) {
+      alert('Please sign in to place bets')
       return
     }
     setBetSide(side)
@@ -20,7 +28,13 @@ export default function MarketCard({ market, currentUser, onUpdate }) {
   }
 
   const submitBet = async () => {
-    if (!currentUser || !betAmount || parseFloat(betAmount) <= 0 || !connectedWallet) {
+    if (!currentUser || !betAmount || parseFloat(betAmount) <= 0 || !connected) {
+      return
+    }
+
+    // Check if user has sufficient total balance
+    if (parseFloat(betAmount) > totalBalance) {
+      alert(`Insufficient balance. You have ${totalBalance.toFixed(2)} LLL available.`)
       return
     }
 
@@ -28,7 +42,7 @@ export default function MarketCard({ market, currentUser, onUpdate }) {
     try {
       await placeOrder({
         userId: currentUser.id,
-        walletAddress: connectedWallet.publicKey,
+        walletAddress: publicKey || currentUser.username, // Use username as fallback if no wallet
         marketId: market.id,
         side: betSide,
         stakeAmount: parseFloat(betAmount)
@@ -37,12 +51,13 @@ export default function MarketCard({ market, currentUser, onUpdate }) {
       setShowBetModal(false)
       setBetAmount('')
       alert('Bet placed successfully!')
+      
+      // Refresh data without full page reload
       if (onUpdate) onUpdate()
       
-      // Reload page to refresh user balance
-      window.location.reload()
     } catch (error) {
-      alert('Failed to place bet: ' + (error.response?.data?.message || error.message))
+      console.error('Order placement error:', error)
+      alert('Failed to place bet: ' + (error.response?.data?.message || error.message || 'Unknown error'))
     } finally {
       setLoading(false)
     }
@@ -76,9 +91,9 @@ export default function MarketCard({ market, currentUser, onUpdate }) {
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => handlePlaceBet('YES')}
-            disabled={!connectedWallet}
+            disabled={!connected}
             className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-lg font-medium transition ${
-              connectedWallet 
+              connected 
                 ? 'bg-green-50 hover:bg-green-100 text-green-700' 
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
@@ -92,9 +107,9 @@ export default function MarketCard({ market, currentUser, onUpdate }) {
           
           <button
             onClick={() => handlePlaceBet('NO')}
-            disabled={!connectedWallet}
+            disabled={!connected}
             className={`flex items-center justify-center space-x-2 px-4 py-3 rounded-lg font-medium transition ${
-              connectedWallet 
+              connected 
                 ? 'bg-red-50 hover:bg-red-100 text-red-700' 
                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }`}
@@ -107,7 +122,7 @@ export default function MarketCard({ market, currentUser, onUpdate }) {
           </button>
         </div>
         
-        {!connectedWallet && (
+        {!connected && (
           <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-sm text-yellow-800 text-center">
               🔗 Connect your wallet to place bets
@@ -141,13 +156,13 @@ export default function MarketCard({ market, currentUser, onUpdate }) {
                 onChange={(e) => setBetAmount(e.target.value)}
                 step="0.01"
                 min="0.01"
-                max={stakedAmount || 0}
+                max={totalBalance}
                 placeholder="Enter amount"
                 inputMode="decimal"
                 className="w-full px-3 sm:px-4 py-3 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <p className="text-xs text-gray-500 mt-1">
-                Available Staked: {stakedAmount?.toFixed(2) || '0.00'} LLL
+                Available Balance: {totalBalance.toFixed(2)} LLL
               </p>
             </div>
 

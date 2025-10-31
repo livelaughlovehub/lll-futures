@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -75,14 +74,10 @@ public class OrderService {
             throw new RuntimeException("Market is not active");
         }
         
-        // Get LLL token balance for the wallet
-        UserTokenBalance tokenBalance = userTokenBalanceRepository.findByWalletAddress(request.getWalletAddress())
-                .orElseThrow(() -> new RuntimeException("No LLL token balance found for wallet: " + request.getWalletAddress()));
-        
-        // Check if user has sufficient staked tokens for trading
-        if (tokenBalance.getStakedAmount() < request.getStakeAmount()) {
-            throw new RuntimeException("Insufficient staked LLL tokens. Staked: " + tokenBalance.getStakedAmount() + 
-                    " LLL, Required: " + request.getStakeAmount() + " LLL. Please stake more tokens to trade.");
+        // Check if user has sufficient tokens from their User model
+        if (user.getTokenBalance() < request.getStakeAmount()) {
+            throw new RuntimeException("Insufficient LLL tokens. Available: " + user.getTokenBalance() + 
+                    " LLL, Required: " + request.getStakeAmount() + " LLL");
         }
         
         Double odds = request.getSide() == Order.OrderSide.YES ? market.getYesOdds() : market.getNoOdds();
@@ -101,9 +96,12 @@ public class OrderService {
         
         order = orderRepository.save(order);
         
-        // Deduct staked tokens from LLL token balance (tokens are locked for the trade)
-        tokenBalance.setStakedAmount(tokenBalance.getStakedAmount() - request.getStakeAmount());
-        userTokenBalanceRepository.save(tokenBalance);
+        // Deduct from user's token balance
+        Double newBalance = user.getTokenBalance() - request.getStakeAmount();
+        user.setTokenBalance(newBalance);
+        userRepository.save(user);
+        
+        log.debug("Deducted {} LLL from user balance. New balance: {}", request.getStakeAmount(), newBalance);
         
         // Update market volume
         marketService.updateMarketVolume(market.getId(), request.getStakeAmount(), 
@@ -112,11 +110,11 @@ public class OrderService {
         // Create transaction record
         createTransaction(user, Transaction.TransactionType.BET_PLACED, 
                 -request.getStakeAmount(), 
-                "Bet placed on: " + market.getTitle() + " (Wallet: " + request.getWalletAddress() + ")",
+                "Bet placed on: " + market.getTitle(),
                 order.getId(), market.getId());
         
-        log.info("Order placed: User {} bet {} LLL on {} for market: {} using wallet: {}", 
-                user.getUsername(), request.getStakeAmount(), request.getSide(), market.getTitle(), request.getWalletAddress());
+        log.info("Order placed: User {} bet {} LLL on {} for market: {}", 
+                user.getUsername(), request.getStakeAmount(), request.getSide(), market.getTitle());
         
         return convertToDTO(order);
     }

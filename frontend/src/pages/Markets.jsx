@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { getActiveMarkets } from '../api/api'
 import MarketCard from '../components/MarketCard'
 
-export default function Markets({ currentUser }) {
+export default function Markets() {
   const [markets, setMarkets] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -40,7 +40,7 @@ export default function Markets({ currentUser }) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
           {markets.map(market => (
-            <MarketCard key={market.id} market={market} currentUser={currentUser} onUpdate={loadMarkets} />
+            <MarketCard key={market.id} market={market} onUpdate={loadMarkets} />
           ))}
         </div>
       )}

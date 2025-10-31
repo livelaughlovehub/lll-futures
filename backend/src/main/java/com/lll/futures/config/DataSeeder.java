@@ -4,6 +4,7 @@ import com.lll.futures.model.Market;
 import com.lll.futures.model.User;
 import com.lll.futures.repository.MarketRepository;
 import com.lll.futures.repository.UserRepository;
+import com.lll.futures.service.TokenSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -18,6 +19,7 @@ public class DataSeeder implements CommandLineRunner {
     
     private final UserRepository userRepository;
     private final MarketRepository marketRepository;
+    private final TokenSyncService tokenSyncService;
     
     @Override
     public void run(String... args) {
@@ -33,11 +35,15 @@ public class DataSeeder implements CommandLineRunner {
         
         // Create users
         User admin = createUser("admin", "admin@lllfutures.com", 10000.0, true);
-        User alice = createUser("alice", "alice@example.com", 1000.0, false);
-        User bob = createUser("bob", "bob@example.com", 1000.0, false);
-        User charlie = createUser("charlie", "charlie@example.com", 1000.0, false);
+        User alice = createUser("alice", "alice@example.com", 50.0, false);
+        User bob = createUser("bob", "bob@example.com", 50.0, false);
+        User charlie = createUser("charlie", "charlie@example.com", 50.0, false);
         
         log.info("Created {} users", userRepository.count());
+        
+        // Assign wallet addresses and sync token balances
+        log.info("Assigning wallet addresses and syncing token balances...");
+        tokenSyncService.syncAllUsers();
         
         // Create sample markets
         createMarket(
@@ -99,9 +105,13 @@ public class DataSeeder implements CommandLineRunner {
     }
     
     private User createUser(String username, String email, Double balance, Boolean isAdmin) {
+        // Use BCrypt to hash default password "password123"
+        String hashedPassword = "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.";
+        
         User user = User.builder()
                 .username(username)
                 .email(email)
+                .password(hashedPassword)
                 .tokenBalance(balance)
                 .isAdmin(isAdmin)
                 .build();

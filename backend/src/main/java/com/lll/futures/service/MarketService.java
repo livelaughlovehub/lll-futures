@@ -8,9 +8,12 @@ import com.lll.futures.repository.MarketRepository;
 import com.lll.futures.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,6 +24,12 @@ public class MarketService {
     
     private final MarketRepository marketRepository;
     private final UserRepository userRepository;
+    
+    @Value("${app.market.creation.max-per-day:1}")
+    private int maxMarketsPerDay;
+    
+    @Value("${app.market.creation.min-balance:50.0}")
+    private double minBalanceForMarket;
     
     @Transactional(readOnly = true)
     public List<MarketDTO> getAllMarkets() {
@@ -48,6 +57,9 @@ public class MarketService {
         User creator = userRepository.findById(request.getCreatorId())
                 .orElseThrow(() -> new RuntimeException("Creator not found with id: " + request.getCreatorId()));
         
+        // Validate market creation limits
+        validateMarketCreationLimits(creator);
+        
         Market market = Market.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -65,6 +77,56 @@ public class MarketService {
         log.info("Created market: {} by {}", market.getTitle(), creator.getUsername());
         
         return convertToDTO(market);
+    }
+    
+    /**
+     * Validates that the user can create a market based on configured limits
+     */
+    private void validateMarketCreationLimits(User creator) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime oneDayAgo = now.minusDays(1);
+        
+        // Check: Maximum markets per day
+        List<Market> recentMarkets = marketRepository.findByCreatorAndCreatedAtAfter(creator, oneDayAgo);
+        
+        if (recentMarkets.size() >= maxMarketsPerDay) {
+            Market lastMarket = recentMarkets.stream()
+                    .min((m1, m2) -> m2.getCreatedAt().compareTo(m1.getCreatedAt()))
+                    .orElse(null);
+            
+            String timeAgo = lastMarket != null ? getTimeAgo(lastMarket.getCreatedAt()) : "recently";
+            throw new RuntimeException(
+                String.format("You can only create %d market(s) per 24 hours. " +
+                    "Your last market was created %s ago. Please try again later.",
+                    maxMarketsPerDay, timeAgo));
+        }
+        
+        // Check: Minimum token balance
+        if (creator.getTokenBalance() < minBalanceForMarket) {
+            throw new RuntimeException(
+                String.format("You need at least %.2f LLL tokens to create a market. " +
+                    "Your current balance: %.2f LLL",
+                    minBalanceForMarket, creator.getTokenBalance()));
+        }
+    }
+    
+    /**
+     * Returns a human-readable time difference string
+     */
+    private String getTimeAgo(LocalDateTime dateTime) {
+        Duration duration = Duration.between(dateTime, LocalDateTime.now());
+        long hours = duration.toHours();
+        long minutes = duration.toMinutes() % 60;
+        
+        if (hours >= 24) {
+            long days = hours / 24;
+            return days + (days == 1 ? " day" : " days");
+        } else if (hours > 0) {
+            return hours + (hours == 1 ? " hour" : " hours") + 
+                   (minutes > 0 ? " and " + minutes + (minutes == 1 ? " minute" : " minutes") : "");
+        } else {
+            return minutes + (minutes == 1 ? " minute" : " minutes");
+        }
     }
     
     @Transactional
