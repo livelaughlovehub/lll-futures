@@ -63,4 +63,4 @@ echo "🔨 Starting backend with Java 21..."
 echo "📋 Final verification - Maven will use:"
 JAVA_HOME="$JAVA_HOME" mvn -version | head -3
 
-JAVA_HOME="$JAVA_HOME" mvn spring-boot:run
+JAVA_HOME="$JAVA_HOME" mvn spring-boot:run -Dspring-boot.run.profiles=local
