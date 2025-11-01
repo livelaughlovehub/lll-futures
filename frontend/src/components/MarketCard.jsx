@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TrendingUp, TrendingDown, Clock, DollarSign } from 'lucide-react'
+import { TrendingUp, TrendingDown, Clock, DollarSign, Share2 } from 'lucide-react'
 import { placeOrder } from '../api/api'
 import { useAuth } from '../context/AuthContext'
 
@@ -25,6 +25,17 @@ export default function MarketCard({ market, onUpdate }) {
     }
     setBetSide(side)
     setShowBetModal(true)
+  }
+
+  const handleShare = async () => {
+    const marketUrl = `${window.location.origin}/markets?market=${market.id}`
+    try {
+      await navigator.clipboard.writeText(marketUrl)
+      alert('Link copied to clipboard!')
+    } catch (err) {
+      console.error('Failed to copy:', err)
+      alert('Failed to copy link')
+    }
   }
 
   const submitBet = async () => {
@@ -70,7 +81,16 @@ export default function MarketCard({ market, onUpdate }) {
     <>
       <div className="bg-white rounded-lg shadow hover:shadow-lg transition p-6">
         <div className="mb-4">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">{market.title}</h3>
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 flex-1 pr-2">{market.title}</h3>
+            <button
+              onClick={handleShare}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              title="Share this market"
+            >
+              <Share2 size={18} className="text-gray-600" />
+            </button>
+          </div>
           <p className="text-sm text-gray-600 line-clamp-2">{market.description}</p>
         </div>
 

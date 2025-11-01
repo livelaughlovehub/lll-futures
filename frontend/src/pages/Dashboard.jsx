@@ -138,9 +138,9 @@ export default function Dashboard() {
       <div>
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Featured Markets</h2>
-          <a href="/markets" className="text-sm sm:text-base text-blue-600 hover:text-blue-700 font-medium">
+          <Link to="/markets" className="text-sm sm:text-base text-blue-600 hover:text-blue-700 font-medium">
             View All →
-          </a>
+          </Link>
         </div>
         {loading ? (
           <div className="text-center py-12">
