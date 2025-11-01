@@ -1,14 +1,35 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { getActiveMarkets } from '../api/api'
 import MarketCard from '../components/MarketCard'
 
 export default function Markets() {
   const [markets, setMarkets] = useState([])
   const [loading, setLoading] = useState(true)
+  const [searchParams] = useSearchParams()
 
   useEffect(() => {
     loadMarkets()
   }, [])
+
+  // Scroll to specific market if URL has market parameter
+  useEffect(() => {
+    const marketId = searchParams.get('market')
+    if (marketId && !loading && markets.length > 0) {
+      // Small delay to ensure DOM is rendered
+      setTimeout(() => {
+        const element = document.getElementById(`market-${marketId}`)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          // Highlight the card briefly
+          element.classList.add('ring-4', 'ring-blue-500', 'ring-opacity-50', 'transition-all', 'duration-500')
+          setTimeout(() => {
+            element.classList.remove('ring-4', 'ring-blue-500', 'ring-opacity-50')
+          }, 2000)
+        }
+      }, 300)
+    }
+  }, [loading, markets, searchParams])
 
   const loadMarkets = async () => {
     try {
@@ -40,7 +61,9 @@ export default function Markets() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
           {markets.map(market => (
-            <MarketCard key={market.id} market={market} onUpdate={loadMarkets} />
+            <div id={`market-${market.id}`} key={market.id}>
+              <MarketCard market={market} onUpdate={loadMarkets} />
+            </div>
           ))}
         </div>
       )}
