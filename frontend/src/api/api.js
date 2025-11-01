@@ -175,6 +175,12 @@ export const checkDeposit = async (userId) => {
   return response.data
 }
 
+// Get vault information (admin only)
+export const getVault = async () => {
+  const response = await api.get('/lll/vault')
+  return response.data
+}
+
 export default api
 
 

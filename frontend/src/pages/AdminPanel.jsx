@@ -1,15 +1,30 @@
 import { useState, useEffect } from 'react'
-import { getAllMarkets, settleMarket } from '../api/api'
-import { Shield, CheckCircle, XCircle, Ban } from 'lucide-react'
+import { getAllMarkets, settleMarket, getVault } from '../api/api'
+import { Shield, CheckCircle, XCircle, Ban, Wallet } from 'lucide-react'
 
 export default function AdminPanel({ currentUser }) {
   const [markets, setMarkets] = useState([])
   const [loading, setLoading] = useState(true)
   const [settlingMarketId, setSettlingMarketId] = useState(null)
+  const [vaultInfo, setVaultInfo] = useState(null)
+  const [vaultLoading, setVaultLoading] = useState(true)
 
   useEffect(() => {
     loadMarkets()
+    loadVaultInfo()
   }, [])
+
+  const loadVaultInfo = async () => {
+    try {
+      setVaultLoading(true)
+      const data = await getVault()
+      setVaultInfo(data)
+    } catch (error) {
+      console.error('Failed to load vault info:', error)
+    } finally {
+      setVaultLoading(false)
+    }
+  }
 
   const loadMarkets = async () => {
     try {
@@ -62,6 +77,50 @@ export default function AdminPanel({ currentUser }) {
         </div>
       </div>
 
+      {/* Vault Information Card */}
+      <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl shadow-lg p-6 border border-blue-200">
+        <div className="flex items-center space-x-3 mb-4">
+          <Wallet className="text-purple-600" size={24} />
+          <h2 className="text-2xl font-bold text-gray-900">Vault Information</h2>
+        </div>
+        
+        {vaultLoading ? (
+          <div className="text-center py-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+          </div>
+        ) : vaultInfo ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white rounded-lg p-4 shadow">
+              <p className="text-sm text-gray-600 mb-1">Balance</p>
+              <p className="text-2xl font-bold text-purple-600">
+                {vaultInfo.balance?.toLocaleString(undefined, { maximumFractionDigits: 2 }) || '0'} LLL
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow">
+              <p className="text-sm text-gray-600 mb-1">Status</p>
+              <p className={`text-xl font-semibold ${vaultInfo.configured ? 'text-green-600' : 'text-red-600'}`}>
+                {vaultInfo.configured ? '✓ Configured' : '✗ Not Configured'}
+              </p>
+            </div>
+            <div className="bg-white rounded-lg p-4 shadow md:col-span-2">
+              <p className="text-sm text-gray-600 mb-1">Public Key</p>
+              <p className="text-xs font-mono text-gray-800 break-all">
+                {vaultInfo.publicKey}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-4 text-red-600">
+            Failed to load vault information
+          </div>
+        )}
+      </div>
+
+      {/* Markets Section */}
+      <div className="mt-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Markets</h2>
+      </div>
+
       {loading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
@@ -72,9 +131,9 @@ export default function AdminPanel({ currentUser }) {
             <div key={market.id} className="bg-white rounded-lg shadow p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
                     <h3 className="text-lg font-semibold text-gray-900">{market.title}</h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${
                       market.status === 'ACTIVE' ? 'bg-green-100 text-green-800' :
                       market.status === 'SETTLED' ? 'bg-gray-100 text-gray-800' :
                       'bg-yellow-100 text-yellow-800'
@@ -83,7 +142,7 @@ export default function AdminPanel({ currentUser }) {
                     </span>
                   </div>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-4">
                     <div>
                       <p className="text-sm text-gray-600">Total Volume</p>
                       <p className="font-semibold text-gray-900 mt-1">{market.totalVolume.toFixed(2)} LLL</p>
@@ -114,7 +173,7 @@ export default function AdminPanel({ currentUser }) {
                   )}
 
                   {(market.status === 'ACTIVE' || market.status === 'CLOSED') && (
-                    <div className="mt-4 flex space-x-2">
+                    <div className="mt-4 flex flex-wrap gap-2">
                       <button
                         onClick={() => handleSettleMarket(market.id, 'YES')}
                         disabled={settlingMarketId === market.id}

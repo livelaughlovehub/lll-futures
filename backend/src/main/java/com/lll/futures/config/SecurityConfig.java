@@ -60,6 +60,7 @@ public class SecurityConfig {
                 .requestMatchers("PUT", "/api/markets/*/close").hasRole("ADMIN")
                 .requestMatchers("DELETE", "/api/markets/**").hasRole("ADMIN")
                 .requestMatchers("GET", "/api/users").hasRole("ADMIN") // GET all users only
+                .requestMatchers("GET", "/api/lll/vault").hasRole("ADMIN") // Vault info for admins only
                 
                 // All other authenticated endpoints
                 .anyRequest().authenticated()
