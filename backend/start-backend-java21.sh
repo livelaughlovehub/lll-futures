@@ -63,4 +63,10 @@ echo "🔨 Starting backend with Java 21..."
 echo "📋 Final verification - Maven will use:"
 JAVA_HOME="$JAVA_HOME" mvn -version | head -3
 
+echo ""
+echo "ℹ️  Note: To test OAuth2 locally, set these environment variables:"
+echo "   export GOOGLE_CLIENT_ID='your-client-id'"
+echo "   export GOOGLE_CLIENT_SECRET='your-client-secret'"
+echo ""
+
 JAVA_HOME="$JAVA_HOME" mvn spring-boot:run -Dspring-boot.run.profiles=local
