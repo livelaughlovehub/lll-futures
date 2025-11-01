@@ -50,5 +50,8 @@ ENV R2_SECRET_KEY=d81fe62a5170aafaef2579e1970e758d581dc7d3f119896dedab00e408e0b2
 ENV R2_BUCKET=lllfutures
 ENV R2_REGION=auto
 
+# OAuth2 Google Configuration (set in Render environment variables)
+ENV FRONTEND_URL=https://lll-futures.onrender.com
+
 # Run the application
 CMD ["java", "-jar", "app.jar"]
