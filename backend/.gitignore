@@ -35,4 +35,7 @@ build/
 ### Local data ###
 /data/
 
+### Environment variables ###
+.env
+
 
