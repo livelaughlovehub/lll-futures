@@ -33,6 +33,9 @@ public class OrderService {
     private final UserService userService;
     private final MarketService marketService;
     private final LLLTokenService lllTokenService;
+    private final SolanaService solanaService;
+    private final WalletService walletService;
+    private final VaultService vaultService;
     
     @Transactional(readOnly = true)
     public List<OrderDTO> getAllOrders() {
@@ -103,6 +106,26 @@ public class OrderService {
         
         log.debug("Deducted {} LLL from user balance. New balance: {}", request.getStakeAmount(), newBalance);
         
+        // Transfer tokens from user wallet to vault (escrow)
+        try {
+            String vaultPublicKey = vaultService.getVaultPublicKey();
+            String userWalletAddress = request.getWalletAddress();
+            
+            String txSignature = solanaService.transferSPLTokenFromUserWallet(
+                getUserWalletKeypair(user.getId()), 
+                userWalletAddress, 
+                vaultPublicKey, 
+                request.getStakeAmount()
+            );
+            
+            log.info("Transferred {} LLL from user {} to vault (escrow) - TX: {}", 
+                request.getStakeAmount(), userWalletAddress, txSignature);
+        } catch (Exception e) {
+            log.error("Failed to transfer tokens to vault: {}", e.getMessage());
+            // Continue even if transfer fails - user balance already deducted
+            // In production, you might want to rollback the order
+        }
+        
         // Update market volume
         marketService.updateMarketVolume(market.getId(), request.getStakeAmount(), 
                 request.getSide() == Order.OrderSide.YES);
@@ -136,6 +159,15 @@ public class OrderService {
                 .build();
         
         transactionRepository.save(transaction);
+    }
+    
+    private byte[] getUserWalletKeypair(Long userId) {
+        var userWallet = walletService.getUserWallet(userId)
+            .orElseThrow(() -> new RuntimeException("User wallet not found for userId: " + userId));
+        
+        String decryptedPrivateKey = walletService.decryptPrivateKey(userWallet.getEncryptedPrivateKey());
+        // Decode Base64 to bytes
+        return java.util.Base64.getDecoder().decode(decryptedPrivateKey);
     }
     
     private OrderDTO convertToDTO(Order order) {

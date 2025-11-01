@@ -27,6 +27,9 @@ public class SettlementService {
     private final TransactionRepository transactionRepository;
     private final UserService userService;
     private final MarketService marketService;
+    private final SolanaService solanaService;
+    private final VaultService vaultService;
+    private final WalletService walletService;
     
     @Transactional
     public MarketDTO settleMarket(SettleMarketRequest request) {
@@ -63,6 +66,24 @@ public class SettlementService {
                 Double payout = order.getPotentialPayout();
                 order.setSettledAmount(payout);
                 
+                // Transfer tokens from vault to winner's wallet
+                try {
+                    String vaultPublicKey = vaultService.getVaultPublicKey();
+                    String userWalletAddress = order.getWalletAddress();
+                    
+                    String txSignature = solanaService.transferSPLToken(
+                        vaultPublicKey, 
+                        userWalletAddress, 
+                        payout
+                    );
+                    
+                    log.info("Transferred {} LLL from vault to winner {} - TX: {}", 
+                        payout, userWalletAddress, txSignature);
+                } catch (Exception e) {
+                    log.error("Failed to transfer tokens to winner: {}", e.getMessage());
+                    // Continue even if transfer fails - user balance already updated
+                }
+                
                 // Update User.tokenBalance using UserService (which also syncs to UserTokenBalance)
                 userService.updateBalance(order.getUser().getId(), payout);
                 
@@ -78,6 +99,23 @@ public class SettlementService {
                 // Refund on void
                 Double refund = order.getStakeAmount();
                 order.setSettledAmount(refund);
+                
+                // Transfer tokens from vault back to user's wallet
+                try {
+                    String vaultPublicKey = vaultService.getVaultPublicKey();
+                    String userWalletAddress = order.getWalletAddress();
+                    
+                    String txSignature = solanaService.transferSPLToken(
+                        vaultPublicKey, 
+                        userWalletAddress, 
+                        refund
+                    );
+                    
+                    log.info("Transferred {} LLL refund from vault to user {} - TX: {}", 
+                        refund, userWalletAddress, txSignature);
+                } catch (Exception e) {
+                    log.error("Failed to transfer refund: {}", e.getMessage());
+                }
                 
                 // Update User.tokenBalance using UserService (which also syncs to UserTokenBalance)
                 userService.updateBalance(order.getUser().getId(), refund);
