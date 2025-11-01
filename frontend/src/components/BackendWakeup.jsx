@@ -79,7 +79,7 @@ export default function BackendWakeup({ onBackendReady, children }) {
           {error && attempts > 10 && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
               <p className="text-sm text-yellow-800">
-                <strong>Still trying...</strong> Backend services on can take 1-2 minutes to wake up.
+                <strong>Still trying...</strong> Backend services can take 1-2 minutes to wake up.
               </p>
             </div>
           )}
