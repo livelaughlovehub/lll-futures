@@ -52,11 +52,24 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('currentUser', JSON.stringify(user))
   }
 
+  const setToken = (token) => {
+    localStorage.setItem('jwtToken', token)
+    // Decode token to get user info (basic JWT decode)
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      // Fetch user details if needed
+      // For now, just store the token
+    } catch (e) {
+      console.error('Error decoding token:', e)
+    }
+  }
+
   const value = {
     currentUser,
     signIn,
     signOut,
     updateUser,
+    setToken,
     loading
   }
 

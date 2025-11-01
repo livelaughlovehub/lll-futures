@@ -27,9 +27,8 @@ export default function Signup() {
   }
 
   const handleGoogleSignup = async () => {
-    // TODO: Implement Google OAuth2.0 integration
-    console.log('Google OAuth2.0 signup clicked')
-    // This would typically redirect to Google OAuth or open a popup
+    const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+    window.location.href = `${API_BASE_URL}/oauth2/authorization/google`
   }
 
   const handleSubmit = async (e) => {

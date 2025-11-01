@@ -13,6 +13,7 @@ import AdminPanel from './pages/AdminPanel'
 import Signup from './pages/Signup'
 import SignIn from './pages/SignIn'
 import Profile from './pages/Profile'
+import OAuthCallback from './pages/OAuthCallback'
 
 function AppRoutes() {
   const { currentUser } = useAuth()
@@ -33,6 +34,7 @@ function AppRoutes() {
             <Route path="/signup" element={<Signup />} />
             <Route path="/signin" element={<SignIn />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/auth/callback" element={<OAuthCallback />} />
           </Routes>
         </main>
       </div>
