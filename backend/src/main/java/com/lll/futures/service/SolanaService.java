@@ -172,9 +172,15 @@ public class SolanaService {
      */
     private String getTokenAccountAddress(String walletAddress) {
         try {
-            Map<String, Object> params = new HashMap<>();
-            params.put("owner", walletAddress);
-            params.put("mint", tokenMint);
+            // RPC params format: [owner, {mint: address}, {encoding: "jsonParsed"}]
+            List<Object> params = new ArrayList<>();
+            params.add(walletAddress);
+            Map<String, Object> filter = new HashMap<>();
+            filter.put("mint", tokenMint);
+            params.add(filter);
+            Map<String, Object> encoding = new HashMap<>();
+            encoding.put("encoding", "jsonParsed");
+            params.add(encoding);
             
             JsonNode response = callSolanaRPC("getTokenAccountsByOwner", params);
             
@@ -182,7 +188,10 @@ public class SolanaService {
                 JsonNode accounts = response.get("result").get("value");
                 if (accounts.isArray() && accounts.size() > 0) {
                     JsonNode account = accounts.get(0);
-                    return account.get("pubkey").asText();
+                    // pubkey is at the root of the account object
+                    if (account.has("pubkey")) {
+                        return account.get("pubkey").asText();
+                    }
                 }
             }
             
