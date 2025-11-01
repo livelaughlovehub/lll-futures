@@ -5,6 +5,12 @@
 
 echo "🚀 Starting LL&L Futures Backend with Java 21..."
 
+# Load .env file if it exists
+if [ -f .env ]; then
+    echo "📋 Loading environment variables from .env file..."
+    export $(grep -v '^#' .env | xargs)
+fi
+
 # Function to find and set Java 21
 setup_java21() {
     # Try to find Java 21 using java_home
