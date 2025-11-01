@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { signInUser } from '../api/api'
+import { signInUser, getUserById } from '../api/api'
 
 const AuthContext = createContext()
 
@@ -52,15 +52,17 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('currentUser', JSON.stringify(user))
   }
 
-  const setToken = (token) => {
+  const setToken = async (token) => {
     localStorage.setItem('jwtToken', token)
     // Decode token to get user info (basic JWT decode)
     try {
       const payload = JSON.parse(atob(token.split('.')[1]))
-      // Fetch user details if needed
-      // For now, just store the token
+      // Fetch user details using userId from token
+      const user = await getUserById(payload.userId)
+      setCurrentUser(user)
+      localStorage.setItem('currentUser', JSON.stringify(user))
     } catch (e) {
-      console.error('Error decoding token:', e)
+      console.error('Error decoding token or fetching user:', e)
     }
   }
 

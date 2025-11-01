@@ -9,22 +9,34 @@ export default function OAuthCallback() {
   const [error, setError] = useState('')
 
   useEffect(() => {
-    const token = searchParams.get('token')
-    
-    if (token) {
-      // Store the token
-      setToken(token)
+    const handleToken = async () => {
+      const token = searchParams.get('token')
       
-      // Redirect to profile
-      setTimeout(() => {
-        navigate('/profile')
-      }, 1500)
-    } else {
-      setError('Authentication failed. Please try again.')
-      setTimeout(() => {
-        navigate('/signin')
-      }, 2000)
+      if (token) {
+        try {
+          // Store the token and fetch user details
+          await setToken(token)
+          
+          // Redirect to profile
+          setTimeout(() => {
+            navigate('/profile')
+          }, 1500)
+        } catch (error) {
+          console.error('Error setting token:', error)
+          setError('Authentication failed. Please try again.')
+          setTimeout(() => {
+            navigate('/signin')
+          }, 2000)
+        }
+      } else {
+        setError('Authentication failed. Please try again.')
+        setTimeout(() => {
+          navigate('/signin')
+        }, 2000)
+      }
     }
+    
+    handleToken()
   }, [searchParams, navigate, setToken])
 
   return (
