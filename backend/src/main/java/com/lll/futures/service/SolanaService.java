@@ -330,9 +330,15 @@ public class SolanaService {
             log.debug("Fetching real token balance for wallet: {}", walletAddress);
             
             // Get token accounts for the wallet
-            Map<String, Object> params = new HashMap<>();
-            params.put("owner", walletAddress);
-            params.put("mint", tokenMint);
+            // RPC params format: [owner, {mint: address}, {encoding: "jsonParsed"}]
+            List<Object> params = new ArrayList<>();
+            params.add(walletAddress);
+            Map<String, Object> filter = new HashMap<>();
+            filter.put("mint", tokenMint);
+            params.add(filter);
+            Map<String, Object> encoding = new HashMap<>();
+            encoding.put("encoding", "jsonParsed");
+            params.add(encoding);
             
             JsonNode response = callSolanaRPC("getTokenAccountsByOwner", params);
             
@@ -341,17 +347,16 @@ public class SolanaService {
                 if (accounts.isArray() && accounts.size() > 0) {
                     // Get the first token account
                     JsonNode account = accounts.get(0);
-                    String accountAddress = account.get("pubkey").asText();
                     
-                    // Get account info to get balance
-                    JsonNode accountInfo = callSolanaRPC("getAccountInfo", 
-                        Map.of("account", accountAddress, "encoding", "base64"));
-                    
-                    if (accountInfo.has("result") && accountInfo.get("result").has("value")) {
-                        JsonNode data = accountInfo.get("result").get("value").get("data");
-                        if (data.isArray() && data.size() >= 2) {
-                            String balanceData = data.get(0).asText();
-                            return parseTokenBalanceFromBase64(balanceData);
+                    // With jsonParsed encoding, the balance is in the parsed field
+                    if (account.has("account") && account.get("account").has("data") 
+                        && account.get("account").get("data").has("parsed")) {
+                        JsonNode parsed = account.get("account").get("data").get("parsed");
+                        if (parsed.has("info") && parsed.get("info").has("tokenAmount")) {
+                            JsonNode tokenAmount = parsed.get("info").get("tokenAmount");
+                            String amount = tokenAmount.get("amount").asText();
+                            Double decimals = tokenAmount.get("decimals").asDouble();
+                            return parseTokenAmount(amount, decimals);
                         }
                     }
                 }
@@ -508,6 +513,15 @@ public class SolanaService {
             }
         } catch (Exception e) {
             log.error("Error parsing token balance from base64: {}", e.getMessage());
+        }
+        return 0.0;
+    }
+    
+    private Double parseTokenAmount(String amount, Double decimals) {
+        try {
+            return Long.parseLong(amount) / Math.pow(10, decimals);
+        } catch (Exception e) {
+            log.error("Error parsing token amount: {}", e.getMessage());
         }
         return 0.0;
     }

@@ -55,10 +55,10 @@ public class VaultService {
         // Initialize vault private key from the provided byte array
         // This is the private key you provided
         vaultPrivateKeyBytes = new byte[]{
-            (byte)184,(byte)188,(byte)16,(byte)138,(byte)43,(byte)127,(byte)80,(byte)93,(byte)66,(byte)138,(byte)250,(byte)35,(byte)12,(byte)153,(byte)81,(byte)161,
-            (byte)200,(byte)8,(byte)240,(byte)18,(byte)111,(byte)22,(byte)238,(byte)208,(byte)50,(byte)246,(byte)169,(byte)98,(byte)86,(byte)178,(byte)4,(byte)125,
-            (byte)15,(byte)123,(byte)41,(byte)127,(byte)110,(byte)222,(byte)100,(byte)193,(byte)162,(byte)161,(byte)171,(byte)176,(byte)137,(byte)83,(byte)129,
-            (byte)140,(byte)58,(byte)21,(byte)77,(byte)174,(byte)19,(byte)55,(byte)176,(byte)35,(byte)160,(byte)154,(byte)176,(byte)148,(byte)32,(byte)155,(byte)22,(byte)99
+            (byte)60,(byte)67,(byte)112,(byte)25,(byte)100,(byte)214,(byte)179,(byte)246,(byte)41,(byte)72,(byte)168,(byte)35,(byte)231,(byte)95,(byte)199,(byte)203,
+            (byte)111,(byte)50,(byte)220,(byte)121,(byte)187,(byte)80,(byte)75,(byte)134,(byte)9,(byte)221,(byte)198,(byte)189,(byte)226,(byte)236,(byte)125,(byte)189,
+            (byte)178,(byte)252,(byte)237,(byte)69,(byte)100,(byte)9,(byte)35,(byte)204,(byte)16,(byte)108,(byte)231,(byte)131,(byte)200,(byte)115,(byte)119,(byte)161,
+            (byte)75,(byte)11,(byte)111,(byte)75,(byte)235,(byte)149,(byte)145,(byte)102,(byte)107,(byte)124,(byte)250,(byte)119,(byte)47,(byte)152,(byte)71,(byte)182
         };
         
         log.info("Vault private key initialized successfully");
